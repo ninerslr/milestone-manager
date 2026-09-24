@@ -6,7 +6,9 @@
 const DATA_FILE = 'data/assignments.csv';
 
 const state = {
+  tab: 'projects',         // 'projects' (By Project) or 'resources' (By Resource)
   selectedProjectId: null,
+  selectedEmployeeId: null,
   projects: [],    // { id, name }
   milestones: [],  // { id, projectId, name }
   employees: [],   // { id, name }
@@ -65,6 +67,7 @@ function loadRows(rows) {
     if (employee) assign(m.id, employee);
   }
   state.selectedProjectId = state.projects[0] && state.projects[0].id;
+  state.selectedEmployeeId = state.employees[0] && state.employees[0].id;
 }
 
 // ---- Model ----
@@ -73,7 +76,10 @@ const sameName = (a, b) => a.trim().toLowerCase() === b.trim().toLowerCase();
 const findProject = name => state.projects.find(p => sameName(p.name, name));
 const findMilestone = (projectId, name) => milestonesFor(projectId).find(m => sameName(m.name, name));
 const milestonesFor = projectId => state.milestones.filter(m => m.projectId === projectId);
-const empsFor = milestoneId => state.assignments.filter(a => a.milestoneId === milestoneId).map(a => byId(state.employees, a.employeeId));
+const findEmployee = name => state.employees.find(e => sameName(e.name, name));
+const isAssigned = (milestoneId, employeeId) => state.assignments.some(a => a.milestoneId === milestoneId && a.employeeId === employeeId);
+const milestonesForEmployee = employeeId => state.assignments.filter(a => a.employeeId === employeeId).map(a => byId(state.milestones, a.milestoneId));
+const empsFor = milestoneId =>state.assignments.filter(a => a.milestoneId === milestoneId).map(a => byId(state.employees, a.employeeId));
 
 function addProject(name) {
   const p = { id: uid('p'), name };
@@ -85,16 +91,23 @@ function addMilestone(projectId, name) {
   state.milestones.push(m);
   return m;
 }
+function addEmployee(name) {
+  const e = { id: uid('e'), name };
+  state.employees.push(e);
+  state.employees.sort((a, b) => a.name.localeCompare(b.name));
+  return e;
+}
 function assign(milestoneId, employeeName) {
-  let e = state.employees.find(x => sameName(x.name, employeeName));
-  if (!e) {
-    e = { id: uid('e'), name: employeeName };
-    state.employees.push(e);
-    state.employees.sort((a, b) => a.name.localeCompare(b.name));
-  }
-  if (!state.assignments.some(a => a.milestoneId === milestoneId && a.employeeId === e.id)) {
-    state.assignments.push({ milestoneId, employeeId: e.id });
-  }
+  const e = findEmployee(employeeName) || addEmployee(employeeName);
+  if (!isAssigned(milestoneId, e.id)) state.assignments.push({ milestoneId, employeeId: e.id });
+}
+function unassign(milestoneId, employeeId) {
+  state.assignments = state.assignments.filter(a => !(a.milestoneId === milestoneId && a.employeeId === employeeId));
+}
+function removeEmployee(id) {
+  state.assignments = state.assignments.filter(a => a.employeeId !== id);
+  state.employees = state.employees.filter(e => e.id !== id);
+  if (state.selectedEmployeeId === id) state.selectedEmployeeId = state.employees[0] && state.employees[0].id;
 }
 function removeMilestone(id) {
   state.milestones = state.milestones.filter(m => m.id !== id);
@@ -108,8 +121,8 @@ function removeProject(id) {
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-// ---- View ----
-function view() {
+// ---- Views ----
+function viewProjects() {
   const project = byId(state.projects, state.selectedProjectId);
   return `
   <div class="layout">
@@ -167,8 +180,59 @@ function viewMilestone(m) {
   </div>`;
 }
 
+function viewResources() {
+  const emp = byId(state.employees, state.selectedEmployeeId);
+  return `
+  <div class="layout">
+    <div class="box">
+      <h2>Resources</h2>
+      ${state.employees.map(e => `
+        <div class="list-item ${emp && e.id === emp.id ? 'active' : ''}" data-action="pick-employee" data-id="${e.id}">
+          ${esc(e.name)}<small>${milestonesForEmployee(e.id).length} milestones</small>
+        </div>`).join('') || '<p class="placeholder">No resources yet.</p>'}
+      <div class="add-row">
+        <input id="new-employee" placeholder="New resource name" data-enter="add-employee">
+        <button class="btn primary" data-action="add-employee">+ Resource</button>
+      </div>
+    </div>
+    <div class="box">
+      ${emp ? viewResource(emp) : '<p class="placeholder">Add a resource on the left to get started.</p>'}
+    </div>
+  </div>`;
+}
+
+function viewResource(emp) {
+  const count = milestonesForEmployee(emp.id).length;
+  return `
+    <div class="card-head">
+      <h2 style="flex:1;display:flex;margin:0"><input class="name-input" value="${esc(emp.name)}" data-action="rename-employee" data-id="${emp.id}" title="Click to rename"></h2>
+      <button class="btn danger" data-action="delete-employee" data-id="${emp.id}">Delete resource</button>
+    </div>
+    <div class="meta"><span>Assigned to ${count} milestone${count === 1 ? '' : 's'}</span>
+      ${count ? '' : '<span>Not saved in the CSV until assigned to at least one milestone</span>'}</div>
+    <p class="placeholder">Tick every milestone this person works on, across any project.</p>
+    ${state.projects.map(p => {
+      const ms = milestonesFor(p.id);
+      const n = ms.filter(m => isAssigned(m.id, emp.id)).length;
+      return `
+      <div class="project-group">
+        <h3><span>${esc(p.name)}</span><span class="meta" style="margin:0">${n} of ${ms.length}</span></h3>
+        ${ms.map(m => {
+          const others = empsFor(m.id).filter(e => e !== emp).map(e => esc(e.name));
+          return `
+          <label class="check-row">
+            <input type="checkbox" data-action="toggle-assign" data-ms="${m.id}" data-emp="${emp.id}" ${isAssigned(m.id, emp.id) ? 'checked' : ''}>
+            <span>${esc(m.name)}<small>${others.length ? 'Also: ' + others.join(', ') : 'No one else assigned'}</small></span>
+          </label>`;
+        }).join('') || '<p class="placeholder">No milestones on this project yet (add them under By Project).</p>'}
+      </div>`;
+    }).join('') || '<p class="placeholder">No projects yet.</p>'}`;
+}
+
 // ---- Render + events ----
 function render(focusId) {
+  document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === state.tab));
+  const view = state.tab === 'resources' ? viewResources : viewProjects;
   document.getElementById('app').innerHTML = view() +
     `<div class="note">Data loaded from ${DATA_FILE}. Changes stay in this browser until you reload. Use "Download CSV" to keep them.</div>`;
   if (focusId) { const el = document.getElementById(focusId); if (el) el.focus(); }
@@ -208,8 +272,17 @@ function act(t) {
     if (!name) return;
     assign(t.dataset.ms, name);
     return render(`assign-${t.dataset.ms}`);
-  } else if (a === 'unassign') {
-    state.assignments = state.assignments.filter(x => !(x.milestoneId === t.dataset.ms && x.employeeId === t.dataset.emp));
+  } else if (a === 'unassign') unassign(t.dataset.ms, t.dataset.emp);
+  else if (a === 'pick-employee') state.selectedEmployeeId = t.dataset.id;
+  else if (a === 'add-employee') {
+    const name = inputValue('new-employee');
+    if (!name) return;
+    if (findEmployee(name)) return alert(`A resource named "${name}" already exists.`);
+    state.selectedEmployeeId = addEmployee(name).id;
+  } else if (a === 'delete-employee') {
+    const e = byId(state.employees, t.dataset.id);
+    if (!confirm(`Delete "${e.name}" and remove them from all milestones?`)) return;
+    removeEmployee(e.id);
   } else return;
   render();
 }
@@ -220,6 +293,10 @@ function rename(t) {
     const p = byId(state.projects, t.dataset.id), clash = findProject(name);
     if (name && (!clash || clash === p)) p.name = name;
     else if (name) alert(`A project named "${name}" already exists.`);
+  } else if (t.dataset.action === 'rename-employee') {
+    const e = byId(state.employees, t.dataset.id), clash = findEmployee(name);
+    if (name && (!clash || clash === e)) { e.name = name; state.employees.sort((a, b) => a.name.localeCompare(b.name)); }
+    else if (name) alert(`A resource named "${name}" already exists.`);
   } else {
     const m = byId(state.milestones, t.dataset.id), clash = findMilestone(m.projectId, name);
     if (name && (!clash || clash === m)) m.name = name;
@@ -234,7 +311,16 @@ app.addEventListener('click', e => {
   if (t && t.tagName !== 'INPUT') act(t);
 });
 app.addEventListener('change', e => {
-  if (/^rename-/.test(e.target.dataset.action || '')) rename(e.target);
+  const t = e.target;
+  if (/^rename-/.test(t.dataset.action || '')) rename(t);
+  else if (t.dataset.action === 'toggle-assign') {
+    const emp = byId(state.employees, t.dataset.emp);
+    if (t.checked) assign(t.dataset.ms, emp.name); else unassign(t.dataset.ms, emp.id);
+    render();
+  }
+});
+document.getElementById('nav').addEventListener('click', e => {
+  if (e.target.dataset.tab) { state.tab = e.target.dataset.tab; render(); }
 });
 app.addEventListener('keydown', e => {
   if (e.key !== 'Enter') return;

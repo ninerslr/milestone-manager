@@ -37,13 +37,21 @@ npx serve .
 
 ## The page
 
-Everything happens on one page:
+Two tabs edit the same data, so a change in one shows up in the other.
+
+**By Project:** manage projects and their milestones, and staff each milestone.
 
 - **Projects (left):** pick a project, or type a name and click **+ Project** to create one.
 - **The selected project (right):** click its name to rename it, or delete it. Its milestones are listed underneath:
   - **+ Milestone** adds a milestone to this project.
   - Click a milestone's name to rename it, or click **Remove** to delete it.
-  - **Assign** adds an employee to the milestone. Pick an existing name or type a new one. Click **×** to unassign someone.
+  - **Assign** adds a resource to the milestone. Pick an existing name or type a new one. Click **×** to unassign someone.
+
+**By Resource:** assign one person to many milestones at once.
+
+- **Resources (left):** pick a person, or add a new one with **+ Resource**.
+- **The selected person (right):** every project is listed with its milestones as checkboxes. Tick all the milestones they work on, across any project, and untick to remove them. Each milestone also shows who else is on it. You can rename or delete the person here too.
+- A new person isn't saved in the CSV until they're assigned to at least one milestone.
 
 Milestones belong to their project. There is no separate milestone list, so two projects can each have their own "Travel Time".
 
@@ -63,7 +71,7 @@ Project 1───* Milestone *───* Employee
 | File | Purpose |
 |---|---|
 | `index.html` | The page layout and styling. |
-| `app.js` | Loads the CSV, draws the page, handles edits and the CSV export. |
+| `app.js` | Loads the CSV, draws both tabs, handles edits and the CSV export. |
 | `data/assignments.csv` | The data. |
 
 ## Open decisions

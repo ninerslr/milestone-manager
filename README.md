@@ -45,8 +45,6 @@ Project 1───* ProjectMilestone *───1 Milestone (library)
 - **ProjectMilestone**: a milestone selected for one project. It holds the due date and status.
 - **MilestoneAssignment**: links an employee to a project milestone. One milestone can have many employees, and one employee can have many milestones.
 
-## Assumptions to confirm
+## Open decisions
 
-1. Employees are assigned to a milestone **on a specific project**, not to the library milestone in general.
-2. Milestones come from a shared library, and projects choose from it. Project-specific custom milestones are not modeled yet.
-3. Each assignment is a plain link, with no role, hours, or allocation %.
+The design questions still to be answered are tracked as issues labeled [`decision`](https://github.com/ninerslr/milestone-manager/issues?q=is%3Aissue+is%3Aopen+label%3Adecision).

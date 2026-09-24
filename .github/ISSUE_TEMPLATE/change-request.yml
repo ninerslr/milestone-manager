@@ -1,0 +1,16 @@
+name: Change request
+description: A specific change to make to the wireframe (for the project team)
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: change
+    attributes:
+      label: What should change?
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: How will we know it's done?
+      description: Acceptance criteria, as a checklist.
+      value: "- [ ] "

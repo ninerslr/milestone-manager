@@ -1,0 +1,30 @@
+name: Review feedback
+description: Comment on the wireframe (a screen, a flow, or something missing)
+labels: ["feedback"]
+body:
+  - type: dropdown
+    id: screen
+    attributes:
+      label: Which screen?
+      options:
+        - Projects
+        - Employees
+        - Milestone Library
+        - General / whole tool
+    validations:
+      required: true
+  - type: textarea
+    id: feedback
+    attributes:
+      label: Your feedback
+      description: What works, what's confusing, what's missing? Screenshots welcome (paste them in).
+    validations:
+      required: true
+  - type: dropdown
+    id: importance
+    attributes:
+      label: How important is this to you?
+      options:
+        - Must have
+        - Nice to have
+        - Just a thought

@@ -2,9 +2,23 @@
 
 A clickable, low-fidelity wireframe for a tool that manages which milestones apply to a project and which employees are assigned to each one.
 
-## Run
+> **Terminology:** "milestone" means a project-management milestone, a key point in a project's schedule such as Kickoff, FAT, SAT or Handover. It does **not** mean a DevOps or issue-tracker milestone (GitHub/Azure DevOps), so there are no releases, sprints, issues or repos in this tool.
 
-Open `index.html` in a browser. It needs no build step and no server. All data is sample data held in memory, and it resets when you reload.
+## Review it
+
+**Live wireframe:** https://ninerslr.github.io/milestone-manager/
+
+It opens in any browser. All data is made-up sample data held in memory, so it resets when you reload.
+
+**To leave feedback:** [open a Review feedback issue](https://github.com/ninerslr/milestone-manager/issues/new?template=review-feedback.yml). You need a free GitHub account for this.
+
+## How work flows
+
+1. Feedback and changes are tracked as **issues**. Open design questions carry the `decision` label.
+2. Each change is made on a branch and merged through a **pull request** that references its issue.
+3. When a change merges to `main`, **GitHub Pages** republishes the live link automatically, usually within a minute or two.
+
+To run it locally, open `index.html` in a browser. There's no build step and no server.
 
 ## Screens
 

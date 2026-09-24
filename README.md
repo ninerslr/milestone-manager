@@ -6,6 +6,8 @@ A clickable, low-fidelity wireframe for a tool that manages which milestones app
 
 ## Live link
 
+**https://milestone-manager-eight.vercel.app**
+
 Hosted on Vercel. Each push to `main` redeploys it. Share the URL with anyone who needs to click through it.
 
 ## Data: a flat file for now

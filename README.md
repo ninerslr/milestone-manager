@@ -2,38 +2,51 @@
 
 A clickable, low-fidelity wireframe for a tool that manages which milestones apply to a project and which employees are assigned to each one.
 
-> **Terminology:** "milestone" means a project-management milestone, a key point in a project's schedule such as Kickoff, FAT, SAT or Handover. It does **not** mean a DevOps or issue-tracker milestone (GitHub/Azure DevOps), so there are no releases, sprints, issues or repos in this tool.
+> **Terminology:** "milestone" means a project-management milestone, a category of work on a project such as Travel Time, Project Support or Installation. It does **not** mean a DevOps or issue-tracker milestone (GitHub/Azure DevOps).
 
-## Review it
+## Live link
 
-**Live wireframe:** https://ninerslr.github.io/milestone-manager/
+Hosted on Vercel. Each push to `main` redeploys it. Share the URL with anyone who needs to click through it.
 
-It opens in any browser. All data is made-up sample data held in memory, so it resets when you reload.
+## Data: a flat file for now
 
-**To leave feedback:** [open a Review feedback issue](https://github.com/ninerslr/milestone-manager/issues/new?template=review-feedback.yml). You need a free GitHub account for this.
+All data comes from **`data/assignments.csv`**, one row per assignment:
 
-## How work flows
+```
+Project,Milestone,Employee
+Altera_Inter Building Fiber 2026,Travel Time,Justin Byrne
+```
 
-1. Feedback and changes are tracked as **issues**. Open design questions carry the `decision` label.
-2. Each change is made on a branch and merged through a **pull request** that references its issue.
-3. When a change merges to `main`, **GitHub Pages** republishes the live link automatically, usually within a minute or two.
+A row with an empty `Employee` means the milestone is on the project but no one is assigned yet.
 
-To run it locally, open `index.html` in a browser. There's no build step and no server.
+- Edits made in the page stay **in your browser only** and are lost when you reload. A Vercel site can't write to its own files.
+- **Download CSV** (top right) exports the current state in the same format. To make it the new starting data, replace `data/assignments.csv` with it and push.
+- Saving edits online (to a Neon Postgres database) is the planned next step.
+
+The starting data was transcribed from `Milestone_Employee_Assignment.png`: 2 projects, 5 milestones, 11 employees and 23 assignments.
+
+## Run locally
+
+The page loads the CSV over HTTP, so opening `index.html` straight from disk won't work. Instead, from this folder:
+
+```
+npx serve .
+```
 
 ## Screens
 
 | Tab | What it shows |
 |---|---|
-| **Projects** | Pick a project, tick milestones from the library to add them to it, then set a due date and status and assign employees on each milestone card. |
-| **Employees** | Pick an employee to see every project milestone they're on, who else is on it, and controls to add or remove associations. |
-| **Milestone Library** | The reusable milestone list that projects choose from, and where each milestone is used. You can add new milestones here. |
+| **Projects** | Pick a project, tick milestones to add them to it, and assign or remove employees on each milestone card. |
+| **Employees** | Pick an employee to see every project milestone they're on and who else is on it, and add or remove their assignments. |
+| **Milestone Library** | Every milestone name and the projects that use it. You can add new ones here. |
 
 ## Data model
 
 ```
-Project 1───* ProjectMilestone *───1 Milestone (library)
+Project 1───* ProjectMilestone *───1 Milestone (shared name)
                     │
-                    * 
+                    *
             MilestoneAssignment   (junction: many-to-many)
                     *
                     │
@@ -41,9 +54,17 @@ Project 1───* ProjectMilestone *───1 Milestone (library)
                 Employee
 ```
 
-- **Milestone**: a reusable template in the library (for example Kickoff, FAT, SAT).
-- **ProjectMilestone**: a milestone selected for one project. It holds the due date and status.
+- **Milestone**: a milestone name that more than one project can use (for example Travel Time).
+- **ProjectMilestone**: a milestone selected for one project.
 - **MilestoneAssignment**: links an employee to a project milestone. One milestone can have many employees, and one employee can have many milestones.
+
+## Files
+
+| File | Purpose |
+|---|---|
+| `index.html` | The page layout and styling. |
+| `app.js` | Loads the CSV, draws the screens, handles edits and the CSV export. |
+| `data/assignments.csv` | The data. |
 
 ## Open decisions
 

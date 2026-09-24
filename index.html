@@ -43,6 +43,16 @@
   th { font-size: 12px; text-transform: uppercase; color: var(--muted); }
   .note { margin-top: 20px; padding: 10px 14px; border: 1px dashed var(--muted); color: var(--muted); font-size: 12px; background: transparent; }
   .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .name-input { font-size: 15px; font-weight: 600; border: 1px dashed transparent; padding: 2px 4px; min-width: 0; flex: 1; }
+  .name-input:hover, .name-input:focus { border-color: var(--line); }
+  h2 .name-input { font-size: 15px; text-transform: none; letter-spacing: 0; }
+  .btn.danger { border-color: #a33; color: #a33; }
+  .add-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .add-row input { flex: 1; min-width: 140px; }
+  .project-group { border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px; margin-bottom: 10px; }
+  .project-group h3 { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+  .project-group .check-row:last-child { border-bottom: none; }
+  .check-row input { margin-top: 3px; }
   @media (max-width: 800px) { .layout, .cols { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -50,12 +60,11 @@
 <header>
   <h1>Milestone Manager</h1>
   <span class="tag">WIREFRAME: edits not saved</span>
-  <button class="btn" id="download">Download CSV</button>
   <nav id="nav">
-    <button data-tab="projects">Projects</button>
-    <button data-tab="employees">Employees</button>
-    <button data-tab="library">Milestone Library</button>
+    <button data-tab="projects">By Project</button>
+    <button data-tab="resources">By Resource</button>
   </nav>
+  <button class="btn" id="download">Download CSV</button>
 </header>
 <main id="app"></main>
 

@@ -19,7 +19,7 @@ Project,Milestone,Employee
 Altera_Inter Building Fiber 2026,Travel Time,Justin Byrne
 ```
 
-A row with an empty `Employee` means the milestone is on the project but no one is assigned yet.
+A row with an empty `Milestone` is a project with no milestones yet. A row with an empty `Employee` is a milestone with nobody assigned yet.
 
 - Edits made in the page stay **in your browser only** and are lost when you reload. A Vercel site can't write to its own files.
 - **Download CSV** (top right) exports the current state in the same format. To make it the new starting data, replace `data/assignments.csv` with it and push.
@@ -35,37 +35,43 @@ The page loads the CSV over HTTP, so opening `index.html` straight from disk won
 npx serve .
 ```
 
-## Screens
+## The page
 
-| Tab | What it shows |
-|---|---|
-| **Projects** | Pick a project, tick milestones to add them to it, and assign or remove employees on each milestone card. |
-| **Employees** | Pick an employee to see every project milestone they're on and who else is on it, and add or remove their assignments. |
-| **Milestone Library** | Every milestone name and the projects that use it. You can add new ones here. |
+Two tabs edit the same data, so a change in one shows up in the other.
+
+**By Project:** manage projects and their milestones, and staff each milestone.
+
+- **Projects (left):** pick a project, or type a name and click **+ Project** to create one.
+- **The selected project (right):** click its name to rename it, or delete it. Its milestones are listed underneath:
+  - **+ Milestone** adds a milestone to this project.
+  - Click a milestone's name to rename it, or click **Remove** to delete it.
+  - **Assign** adds a resource to the milestone. Pick an existing name or type a new one. Click **×** to unassign someone.
+
+**By Resource:** assign one person to many milestones at once.
+
+- **Resources (left):** pick a person, or add a new one with **+ Resource**.
+- **The selected person (right):** every project is listed with its milestones as checkboxes. Tick all the milestones they work on, across any project, and untick to remove them. Each milestone also shows who else is on it. You can rename or delete the person here too.
+- A new person isn't saved in the CSV until they're assigned to at least one milestone.
+
+Milestones belong to their project. There is no separate milestone list, so two projects can each have their own "Travel Time".
 
 ## Data model
 
 ```
-Project 1───* ProjectMilestone *───1 Milestone (shared name)
-                    │
-                    *
-            MilestoneAssignment   (junction: many-to-many)
-                    *
-                    │
-                    1
-                Employee
+Project 1───* Milestone *───* Employee
+                  (via MilestoneAssignment)
 ```
 
-- **Milestone**: a milestone name that more than one project can use (for example Travel Time).
-- **ProjectMilestone**: a milestone selected for one project.
-- **MilestoneAssignment**: links an employee to a project milestone. One milestone can have many employees, and one employee can have many milestones.
+- **Project**: has many milestones.
+- **Milestone**: belongs to exactly one project. Its name is unique within that project.
+- **MilestoneAssignment**: links an employee to a milestone. One milestone can have many employees, and one employee can be on many milestones, across projects.
 
 ## Files
 
 | File | Purpose |
 |---|---|
 | `index.html` | The page layout and styling. |
-| `app.js` | Loads the CSV, draws the screens, handles edits and the CSV export. |
+| `app.js` | Loads the CSV, draws both tabs, handles edits and the CSV export. |
 | `data/assignments.csv` | The data. |
 
 ## Open decisions

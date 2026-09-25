@@ -1,6 +1,6 @@
-# Milestone Manager: Wireframe
+# Milestone Manager
 
-A clickable, low-fidelity wireframe for a tool that manages which milestones apply to a project and which employees are assigned to each one.
+A tool that manages which milestones apply to a project and which employees are assigned to each one.
 
 > **Terminology:** "milestone" means a project-management milestone, a category of work on a project such as Travel Time, Project Support or Installation. It does **not** mean a DevOps or issue-tracker milestone (GitHub/Azure DevOps).
 
@@ -10,30 +10,33 @@ A clickable, low-fidelity wireframe for a tool that manages which milestones app
 
 Hosted on Vercel. Each push to `main` redeploys it. Share the URL with anyone who needs to click through it.
 
-## Data: a flat file for now
+## Data: a Neon Postgres database
 
-All data comes from **`data/assignments.csv`**, one row per assignment:
+Everything is saved in a Neon Postgres database (free plan, us-west-2), so edits are kept and everyone sees the same data. Each edit is saved as soon as you make it; the header shows **Saving…** / **All changes saved**.
 
-```
-Project,Milestone,Employee
-Altera_Inter Building Fiber 2026,Travel Time,Justin Byrne
-```
+- **Download CSV** (top right) exports what is saved in the database, one row per assignment:
 
-A row with an empty `Milestone` is a project with no milestones yet. A row with an empty `Employee` is a milestone with nobody assigned yet.
+  ```
+  Project,Milestone,Employee
+  Altera_Inter Building Fiber 2026,Travel Time,Justin Byrne
+  ```
 
-- Edits made in the page stay **in your browser only** and are lost when you reload. A Vercel site can't write to its own files.
-- **Download CSV** (top right) exports the current state in the same format. To make it the new starting data, replace `data/assignments.csv` with it and push.
-- Saving edits online (to a Neon Postgres database) is the planned next step.
-
-The starting data was transcribed from `Milestone_Employee_Assignment.png`: 2 projects, 5 milestones, 11 employees and 23 assignments.
+  A row with an empty `Milestone` is a project with no milestones yet. A row with an empty `Employee` is a milestone with nobody assigned yet. A resource with no assignments has no row, so they are not in the export.
+- **`data/assignments.csv`** is the starting data. `npm run db:migrate` loads it into a new, empty database, and never touches a database that already has projects.
+- There is no sign-in: anyone with the link can edit.
 
 ## Run locally
 
-The page loads the CSV over HTTP, so opening `index.html` straight from disk won't work. Instead, from this folder:
+Needs Node 22+ and the database connection string. Copy `.env.example` to `.env` and put the pooled Neon URL in `DATABASE_URL` (or run the commands through `doppler run -p milestone-manager -c prd --`). Then:
 
 ```
-npx serve .
+npm install
+npm run db:migrate   # create the tables (and load the CSV into an empty database)
+npm run dev          # http://localhost:3000
+npm test             # tests run against an in-process Postgres, no database needed
 ```
+
+On Vercel, `DATABASE_URL` is set under Project → Settings → Environment Variables.
 
 ## The page
 
@@ -70,9 +73,16 @@ Project 1───* Milestone *───* Employee
 
 | File | Purpose |
 |---|---|
-| `index.html` | The page layout and styling. |
-| `app.js` | Loads the CSV, draws both tabs, handles edits and the CSV export. |
-| `data/assignments.csv` | The data. |
+| `public/index.html` | The page layout and styling. |
+| `public/app.js` | Draws both tabs and sends each edit to the API. |
+| `api/data.js` | `GET` all data, `POST` one edit. Answers with the fresh data. |
+| `api/export.js` | The saved data as a CSV download. |
+| `api/_lib/schema.js` | The database tables. |
+| `api/_lib/store.js` | Reads and changes the data; checks names and ids. |
+| `api/_lib/csv.js` | CSV reading and writing. |
+| `scripts/migrate.js` | Creates the tables; loads the starting CSV into an empty database. |
+| `scripts/dev-server.js` | Local server: `public/` plus the `api/` routes, like Vercel. |
+| `data/assignments.csv` | The starting data. |
 
 ## Open decisions
 

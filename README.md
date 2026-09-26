@@ -23,11 +23,19 @@ Everything is saved in a Neon Postgres database (free plan, us-west-2), so edits
 
   A row with an empty `Milestone` is a project with no milestones yet. A row with an empty `Employee` is a milestone with nobody assigned yet. A resource with no assignments has no row, so they are not in the export.
 - **`data/assignments.csv`** is the starting data. `npm run db:migrate` loads it into a new, empty database, and never touches a database that already has projects.
-- There is no sign-in: anyone with the link can edit.
+- **Size limits:** at most 200 projects, 50 milestones per project, 500 resources and 10,000 assignments; names at most 200 characters. The page shows a message when a limit is reached.
+
+## Sign-in
+
+The whole site is behind one shared password, `SITE_PASSWORD` (Doppler `milestone-manager/prd`, and Vercel env vars). Signing in lasts 7 days; **Sign out** is top right.
+
+- To change the password, change it in Doppler and in Vercel, then redeploy. Everyone is signed out.
+- After 5 wrong passwords from one address in 15 minutes, that address has to wait. After 200 wrong passwords across the whole site in 15 minutes, all new sign-ins pause for a while; people already signed in are not affected.
+- The CSV export turns cells that start with `= + - @` into plain text, so a name can't run as a spreadsheet formula.
 
 ## Run locally
 
-Needs Node 22+ and the database connection string. Copy `.env.example` to `.env` and put the pooled Neon URL in `DATABASE_URL` (or run the commands through `doppler run -p milestone-manager -c prd --`). Then:
+Needs Node 22+, the database connection string and the site password. Copy `.env.example` to `.env` and fill in `DATABASE_URL` (the pooled Neon URL) and `SITE_PASSWORD` (or run the commands through `doppler run -p milestone-manager -c prd --`). Then:
 
 ```
 npm install
@@ -36,7 +44,7 @@ npm run dev          # http://localhost:3000
 npm test             # tests run against an in-process Postgres, no database needed
 ```
 
-On Vercel, `DATABASE_URL` is set under Project → Settings → Environment Variables.
+On Vercel, `DATABASE_URL` and `SITE_PASSWORD` are set under Project → Settings → Environment Variables.
 
 ## The page
 
@@ -73,12 +81,16 @@ Project 1───* Milestone *───* Employee
 
 | File | Purpose |
 |---|---|
-| `public/index.html` | The page layout and styling. |
-| `public/app.js` | Draws both tabs and sends each edit to the API. |
+| `site/index.html` | The page layout and styling (signed-in only). |
+| `site/app.js` | Draws both tabs and sends each edit to the API (signed-in only). |
+| `site/login.html` | The sign-in page. |
+| `api/page.js` | Serves the pages above, checking sign-in first. |
+| `api/login.js`, `api/logout.js` | Sign in and out. |
+| `api/_lib/auth.js` | Password check, session cookie, wrong-password limits. |
 | `api/data.js` | `GET` all data, `POST` one edit. Answers with the fresh data. |
 | `api/export.js` | The saved data as a CSV download. |
 | `api/_lib/schema.js` | The database tables. |
-| `api/_lib/store.js` | Reads and changes the data; checks names and ids. |
+| `api/_lib/store.js` | Reads and changes the data; checks names, ids and size limits. |
 | `api/_lib/csv.js` | CSV reading and writing. |
 | `scripts/migrate.js` | Creates the tables; loads the starting CSV into an empty database. |
 | `scripts/dev-server.js` | Local server: `public/` plus the `api/` routes, like Vercel. |

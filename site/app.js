@@ -1,4 +1,5 @@
 // Data is saved in a Neon Postgres database through /api/data.
+// This page is only served to signed-in visitors (see api/page.js).
 // Milestones belong to a project. There is no shared milestone list.
 // Every edit is sent to the server, which answers with the fresh data, so
 // the page also picks up changes other people have made.
@@ -43,6 +44,7 @@ async function send(edit, focusId) {
   saving++; showSaving();
   try {
     const res = await fetch(API, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(edit) });
+    if (res.status === 401) return signIn();
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
       alert(body.error || `Could not save (HTTP ${res.status}).`);
@@ -57,8 +59,15 @@ async function send(edit, focusId) {
   }
 }
 
+// The session has expired (or the password changed): back to the login page.
+function signIn() {
+  location.href = '/login';
+  return null;
+}
+
 async function reload() {
   const res = await fetch(API);
+  if (res.status === 401) return signIn();
   if (!res.ok) throw new Error(`Could not load the data (HTTP ${res.status}).`);
   setData((await res.json()).state);
 }

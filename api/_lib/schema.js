@@ -29,4 +29,11 @@ export const SCHEMA = [
     employee_id  integer not null references employees (id) on delete cascade,
     primary key (milestone_id, employee_id)
   )`,
+  // Wrong login passwords, for the attempt limits in auth.js. Rows older
+  // than a day are deleted as new ones arrive.
+  `create table if not exists login_failures (
+    ip text        not null,
+    at timestamptz not null default now()
+  )`,
+  `create index if not exists login_failures_at on login_failures (at)`,
 ];

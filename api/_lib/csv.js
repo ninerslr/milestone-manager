@@ -42,7 +42,13 @@ export async function loadCsv(store, text) {
   }
 }
 
-const csvField = v => /[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+// A cell starting with = + - @ (or tab/CR) is run as a formula by Excel and
+// Sheets, e.g. =HYPERLINK(...). A leading apostrophe makes it plain text.
+const neutralize = v => /^[=+\-@\t\r]/.test(v) ? `'${v}` : v;
+const csvField = raw => {
+  const v = neutralize(raw);
+  return /[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+};
 
 // `state` is what store.getState() returns. Resources with no assignments
 // have no row to live on, so they are not in the CSV.

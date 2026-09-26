@@ -13,6 +13,15 @@ export class HttpError extends Error {
 
 export const MAX_NAME_LENGTH = 200;
 
+// The most rows each table may hold, so nobody can grow the database without
+// bound. Names are at most MAX_NAME_LENGTH, so even full tables stay small.
+export const LIMITS = {
+  projects: 200,
+  milestonesPerProject: 50,
+  employees: 500,
+  assignments: 10000,
+};
+
 function name(value) {
   const n = typeof value === 'string' ? value.trim() : '';
   if (!n) throw new HttpError(400, 'A name is required.');
@@ -48,12 +57,24 @@ export function createStore(query) {
     return rows[0].id;
   }
 
+  // Refuses the edit if the count query already reaches the limit. Two edits
+  // at the same instant could both pass and overshoot by one; that's fine
+  // for a size cap.
+  async function underLimit(countSql, params, limit, what) {
+    const [{ count }] = await query(countSql, params);
+    if (count >= limit) throw new HttpError(409, `Limit reached: at most ${limit} ${what}.`);
+  }
+  const employeeLimit = () => underLimit(`select count(*)::int as count from employees`, [], LIMITS.employees, 'resources');
+
   const projectExists = n => `A project named "${n}" already exists.`;
   const milestoneExists = n => `This project already has a "${n}" milestone.`;
   const employeeExists = n => `A resource named "${n}" already exists.`;
 
   async function assign(milestoneId, employeeName) {
-    const n = name(employeeName);
+    const n = name(employeeName), mid = id(milestoneId);
+    await underLimit(`select count(*)::int as count from assignments`, [], LIMITS.assignments, 'assignments in total');
+    const [existing] = await query(`select id from employees where lower(name) = lower($1)`, [n]);
+    if (!existing) await employeeLimit();
     // Reuse the employee if the name exists (any case), otherwise create them.
     const [emp] = await query(
       `with found as (select id from employees where lower(name) = lower($1)),
@@ -67,7 +88,7 @@ export function createStore(query) {
     try {
       await query(
         `insert into assignments (milestone_id, employee_id) values ($1, $2) on conflict do nothing`,
-        [id(milestoneId), emp.id],
+        [mid, emp.id],
       );
     } catch (err) {
       if (err.code === FOREIGN_KEY_VIOLATION) throw new HttpError(404, GONE);
@@ -79,13 +100,22 @@ export function createStore(query) {
   // One entry per edit the page can make. Each returns the id it created or
   // changed, so the page can select it.
   const OPS = {
-    addProject: b => one(`insert into projects (name) values ($1) returning id`, [name(b.name)], projectExists(name(b.name))),
+    addProject: async b => {
+      await underLimit(`select count(*)::int as count from projects`, [], LIMITS.projects, 'projects');
+      return one(`insert into projects (name) values ($1) returning id`, [name(b.name)], projectExists(name(b.name)));
+    },
     renameProject: b => one(`update projects set name = $2 where id = $1 returning id`, [id(b.id), name(b.name)], projectExists(name(b.name))),
     deleteProject: b => query(`delete from projects where id = $1`, [id(b.id)]),
-    addMilestone: b => one(`insert into milestones (project_id, name) values ($1, $2) returning id`, [id(b.projectId), name(b.name)], milestoneExists(name(b.name))),
+    addMilestone: async b => {
+      await underLimit(`select count(*)::int as count from milestones where project_id = $1`, [id(b.projectId)], LIMITS.milestonesPerProject, 'milestones per project');
+      return one(`insert into milestones (project_id, name) values ($1, $2) returning id`, [id(b.projectId), name(b.name)], milestoneExists(name(b.name)));
+    },
     renameMilestone: b => one(`update milestones set name = $2 where id = $1 returning id`, [id(b.id), name(b.name)], milestoneExists(name(b.name))),
     deleteMilestone: b => query(`delete from milestones where id = $1`, [id(b.id)]),
-    addEmployee: b => one(`insert into employees (name) values ($1) returning id`, [name(b.name)], employeeExists(name(b.name))),
+    addEmployee: async b => {
+      await employeeLimit();
+      return one(`insert into employees (name) values ($1) returning id`, [name(b.name)], employeeExists(name(b.name)));
+    },
     renameEmployee: b => one(`update employees set name = $2 where id = $1 returning id`, [id(b.id), name(b.name)], employeeExists(name(b.name))),
     deleteEmployee: b => query(`delete from employees where id = $1`, [id(b.id)]),
     assign: b => assign(b.milestoneId, b.name),

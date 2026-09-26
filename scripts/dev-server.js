@@ -1,9 +1,10 @@
 // Local development server: npm run dev
 //
 // Same split Vercel uses in production:
+//   rewrites     -> as listed in vercel.json
 //   /api/<name>  -> runs api/<name>.js
 //   anything else -> a file from public/
-// Needs DATABASE_URL in .env for the /api routes.
+// Needs DATABASE_URL and SITE_PASSWORD in .env.
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
@@ -19,7 +20,12 @@ function fail(res, code, message) {
   res.end(message);
 }
 
+// The exact-path rewrites from vercel.json, e.g. "/" -> "/api/page?f=index".
+const REWRITES = JSON.parse(await readFile(new URL('../vercel.json', import.meta.url), 'utf8')).rewrites ?? [];
+
 async function handle(req, res) {
+  const rewrite = REWRITES.find(r => r.source === new URL(req.url ?? '/', 'http://localhost').pathname);
+  if (rewrite) req.url = rewrite.destination;
   const { pathname } = new URL(req.url ?? '/', 'http://localhost');
 
   if (pathname.startsWith('/api/')) {

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in · Milestone Manager</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; font: 14px/1.4 system-ui, sans-serif; background: #f4f4f2; color: #222; }
+  form { width: 100%; max-width: 320px; background: #fff; border: 1.5px solid #222; border-radius: 4px; padding: 20px; }
+  h1 { font-size: 18px; margin: 0 0 16px; }
+  label { display: block; font-size: 12px; color: #777; margin-bottom: 4px; }
+  input { width: 100%; font: inherit; padding: 8px; border: 1px solid #bbb; border-radius: 3px; }
+  button { margin-top: 12px; width: 100%; font: inherit; padding: 8px; border: 1px solid #222; background: #222; color: #fff; border-radius: 3px; cursor: pointer; }
+  .error { color: #a33; margin: 0 0 12px; }
+</style>
+</head>
+<body>
+<form method="post" action="/api/login">
+  <h1>Milestone Manager</h1>
+  <!--error-->
+  <label for="password">Password</label>
+  <input id="password" name="password" type="password" autocomplete="current-password" required autofocus>
+  <button type="submit">Sign in</button>
+</form>
+</body>
+</html>
